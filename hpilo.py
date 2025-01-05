@@ -201,7 +201,7 @@ class Ilo(object):
         self.hponcfg = "/sbin/hponcfg"
         hponcfg = 'hponcfg'
         if platform.system() == 'Windows':
-            self.hponcfg = r'C:\Program Files\HP Lights-Out Configuration Utility\cpqlocfg.exe'
+            self.hponcfg = 'C:\\Program Files\\HP Lights-Out Configuration Utility\\cpqlocfg.exe'
             hponcfg = 'cpqlocfg.exe'
         for path in os.environ.get('PATH','').split(os.pathsep):
             maybe = os.path.join(path, hponcfg)
@@ -333,7 +333,7 @@ class Ilo(object):
             body = re.search('<body>(.*)</body>', data, flags=re.DOTALL).group(1)
             body = re.sub('<[^>]*>', '', body).strip()
             body = re.sub('Return to last page', '', body).strip()
-            body = re.sub(r'\s+', ' ', body).strip()
+            body = re.sub('\\s+', ' ', body).strip()
             raise IloError(body)
         self.cookie = re.search('Set-Cookie: *(.*)', data).group(1)
         self._debug(2, "Cookie: %s" % self.cookie)
@@ -429,7 +429,7 @@ class Ilo(object):
         if self.protocol != ILO_LOCAL:
             sock.write(self.XML_HEADER)
         if b'$EMBED' in xml:
-            pre, name, post = re.compile(rb'(.*)\$EMBED:(.*)\$(.*)', re.DOTALL).match(xml).groups()
+            pre, name, post = re.compile(b'(.*)\\$EMBED:(.*)\\$(.*)', re.DOTALL).match(xml).groups()
             sock.write(pre)
             sent = 0
             fwlen = os.path.getsize(name)
@@ -564,7 +564,7 @@ class Ilo(object):
             data = data.replace('\x01', '')
         
         # Quite a few unescaped quotation mark bugs keep appearing. Let's try
-        # to fix up the XML by replacing the last occurrence of a quotation mark
+        # to fix up the XML by replacing the last occurence of a quotation mark
         # *before* the position of the error.
         #
         # Definitely not an optimal algorithm, but this is not a hot path.
@@ -1176,7 +1176,7 @@ class Ilo(object):
         return self._info_tag('RIB_INFO', 'GET_FEDERATION_GROUP', attrib={'GROUP_NAME': group_name}, process=process)
 
     def get_federation_multicast(self):
-        """Get the iLO federation multicast settings"""
+        """Get the iLO federation mulicast settings"""
         return self._info_tag('RIB_INFO', 'GET_FEDERATION_MULTICAST')
 
     def get_fips_status(self):
@@ -1660,8 +1660,6 @@ class Ilo(object):
             if key.endswith('_priv'):
                 if isinstance(val, basestring):
                     val = val.replace('oemhp_', '').replace('_priv', '').split(',')
-                if not hasattr(val, '__iter__'):
-                    val = [val]
                 val = ','.join([str(privmap.get(x,x)) for x in val])
             else:
                 val = str({True: 'Yes', False: 'No'}.get(val, val))
@@ -1723,7 +1721,7 @@ class Ilo(object):
         return self._control_tag('SSO_INFO', 'MOD_SSO_SETTINGS', elements=elements)
 
     def mod_twofactor_settings(self, auth_twofactor_enable=None, cert_revocation_check=None, cert_owner_san=None, cert_owner_subject=None):
-        """Modify the twofactor authentication settings"""
+        """Modify the twofactor authenticatino settings"""
         elements = []
         if auth_twofactor_enable is not None:
             elements.append(etree.Element('AUTH_TWOFACTOR_ENABLE', VALUE=['No', 'Yes'][bool(auth_twofactor_enable)]))
@@ -1956,7 +1954,7 @@ class Ilo(object):
 
     def set_server_auto_pwr(self, setting):
         """Set the automatic power on delay setting. Valid settings are False,
-           True (for minimum delay), 15, 30, 45 60 (for that amount of delay)
+           True (for minumum delay), 15, 30, 45 60 (for that amount of delay)
            or random (for a random delay of up to 60 seconds.)"""
         setting = str({True: 'Yes', False: 'No'}.get(setting, setting))
         return self._control_tag('SERVER_INFO', 'SERVER_AUTO_PWR', attrib={'VALUE': setting})
@@ -2107,9 +2105,7 @@ class Ilo(object):
                 data = fd.read()
         else:
             url = 'https://%s:%s/xmldata?item=%s' % (self.hostname, self.port, item)
-            if self.ssl_context:
-                opener = urllib2.build_opener(urllib2.ProxyHandler({}), urllib2.HTTPSHandler(context=self.ssl_context))
-            elif hasattr(ssl, 'create_default_context'):
+            if hasattr(ssl, 'create_default_context'):
                 ctx = ssl.create_default_context()
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
